@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { DigitStats, TradeType } from '../lib/types';
@@ -18,37 +17,38 @@ export function AIDigitAnalysis({
   marketName,
   tradeType,
 }: Props) {
-  const { counts, percentages, totalTicks } = digitStats;
+  const counts = Array.isArray(digitStats?.counts)
+    ? digitStats.counts
+    : Array(10).fill(0);
+
+  const percentages = Array.isArray(digitStats?.percentages)
+    ? digitStats.percentages
+    : Array(10).fill(0);
+
+  const totalTicks = Number(digitStats?.totalTicks ?? 0);
+  const normalizedTradeType =
+    typeof tradeType === 'string' ? tradeType : 'digit-frequency';
+  const hasData = totalTicks > 0 && percentages.length > 0;
 
   const evenCount = counts.reduce(
-    (sum, count, digit) =>
-      sum + (digit % 2 === 0 ? count : 0),
+    (sum, count, digit) => sum + (digit % 2 === 0 ? count : 0),
     0
   );
 
-  const evenPct = totalTicks
-    ? (evenCount / totalTicks) * 100
-    : 0;
+  const evenPct = hasData ? (evenCount / totalTicks) * 100 : 0;
+  const oddPct = hasData ? 100 - evenPct : 0;
 
-  const oddPct = totalTicks
-    ? 100 - evenPct
-    : 0;
-
-  const maxPct = Math.max(...percentages);
-  const minPct = Math.min(...percentages);
+  const maxPct = hasData ? Math.max(...percentages) : 0;
+  const minPct = hasData ? Math.min(...percentages) : 0;
 
   const highestDigits = percentages
     .map((pct, digit) => ({ pct, digit }))
-    .filter(
-      (item) => totalTicks > 0 && item.pct === maxPct
-    )
+    .filter((item) => hasData && item.pct === maxPct)
     .map((item) => item.digit);
 
   const lowestDigits = percentages
     .map((pct, digit) => ({ pct, digit }))
-    .filter(
-      (item) => totalTicks > 0 && item.pct === minPct
-    )
+    .filter((item) => hasData && item.pct === minPct)
     .map((item) => item.digit);
 
   const paritySummary =
@@ -80,42 +80,36 @@ export function AIDigitAnalysis({
       </div>
 
       <p className="mt-1 text-xs text-muted-foreground">
-        {marketName} · {tradeType.replace(/-/g, ' ')}
+        {marketName} · {normalizedTradeType.replace(/-/g, ' ')}
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-lg bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground">
-            Ticks in sample
-          </p>
+          <p className="text-xs text-muted-foreground">Ticks in sample</p>
           <p className="mt-1 text-xl font-semibold">
             {totalTicks.toLocaleString()}
           </p>
         </div>
 
         <div className="rounded-lg bg-muted/50 p-3">
-          <p className="text-xs text-muted-foreground">
-            Latest last digit
-          </p>
+          <p className="text-xs text-muted-foreground">Latest last digit</p>
           <p className="mt-1 text-xl font-semibold">
             {lastDigit === null ? '—' : lastDigit}
           </p>
         </div>
       </div>
 
-      {tradeType === 'even-odd' ? (
+      {normalizedTradeType === 'even-odd' ? (
         <div className="mt-4 space-y-3">
           <div>
             <div className="flex justify-between text-sm">
               <span>Even</span>
-              <span>
-                {totalTicks ? `${evenPct.toFixed(1)}%` : '—'}
-              </span>
+              <span>{hasData ? `${evenPct.toFixed(1)}%` : '—'}</span>
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary"
-                style={{ width: `${totalTicks ? evenPct : 0}%` }}
+                style={{ width: `${hasData ? evenPct : 0}%` }}
               />
             </div>
           </div>
@@ -123,14 +117,12 @@ export function AIDigitAnalysis({
           <div>
             <div className="flex justify-between text-sm">
               <span>Odd</span>
-              <span>
-                {totalTicks ? `${oddPct.toFixed(1)}%` : '—'}
-              </span>
+              <span>{hasData ? `${oddPct.toFixed(1)}%` : '—'}</span>
             </div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary/50"
-                style={{ width: `${totalTicks ? oddPct : 0}%` }}
+                style={{ width: `${hasData ? oddPct : 0}%` }}
               />
             </div>
           </div>
@@ -138,7 +130,7 @@ export function AIDigitAnalysis({
       ) : (
         <div className="mt-4">
           <p className="mb-2 text-xs text-muted-foreground">
-            Observed digit frequency · baseline 10% each
+            Observed digit frequency �� baseline 10% each
           </p>
 
           <div className="grid grid-cols-5 gap-2">
@@ -149,13 +141,13 @@ export function AIDigitAnalysis({
               >
                 <p className="text-sm font-semibold">{digit}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {totalTicks ? `${pct.toFixed(1)}%` : '—'}
+                  {hasData ? `${pct.toFixed(1)}%` : '—'}
                 </p>
               </div>
             ))}
           </div>
 
-          {totalTicks > 0 && (
+          {hasData && (
             <p className="mt-2 text-xs text-muted-foreground">
               Highest observed: {highestDigits.join(', ')}
               {' · '}
@@ -166,24 +158,22 @@ export function AIDigitAnalysis({
       )}
 
       <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-        <p className="text-sm font-semibold">
-          Assessment: No confirmed edge
-        </p>
+        <p className="text-sm font-semibold">Assessment: No confirmed edge</p>
 
         <p className="mt-1 text-sm text-muted-foreground">
           {!isConnected
             ? 'Waiting for a live market connection.'
             : totalTicks === 0
               ? 'Waiting for tick observations.'
-              : tradeType === 'even-odd'
+              : normalizedTradeType === 'even-odd'
                 ? paritySummary
                 : 'The frequency differences describe this sample; they do not reliably predict the next digit.'}
         </p>
 
         <p className="mt-2 text-xs text-muted-foreground">
-          Informational analysis only. Recent streaks are not
-          guarantees. Consider contract payout, risk and
-          out-of-sample testing before trading.
+          Informational analysis only. Recent streaks are not guarantees.
+          Consider contract payout, risk and out-of-sample testing before
+          trading.
         </p>
       </div>
     </section>

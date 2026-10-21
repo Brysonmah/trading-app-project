@@ -26,8 +26,7 @@ export function AIDigitAnalysis({
     : Array(10).fill(0);
 
   const totalTicks = Number(digitStats?.totalTicks ?? 0);
-  const normalizedTradeType =
-    typeof tradeType === 'string' ? tradeType : 'digit-frequency';
+  const normalizedTradeType: TradeType = tradeType ?? 'over-under';
   const hasData = totalTicks > 0 && percentages.length > 0;
 
   const evenCount = counts.reduce(
@@ -64,9 +63,7 @@ export function AIDigitAnalysis({
       aria-live="polite"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-semibold">
-          Mahtradinghub AI Analysis
-        </h3>
+        <h3 className="text-base font-semibold">Mahtradinghub AI Analysis</h3>
 
         <span
           className={`rounded-full px-2.5 py-1 text-xs ${
@@ -130,7 +127,7 @@ export function AIDigitAnalysis({
       ) : (
         <div className="mt-4">
           <p className="mb-2 text-xs text-muted-foreground">
-            Observed digit frequency �� baseline 10% each
+            Observed digit frequency · baseline 10% each
           </p>
 
           <div className="grid grid-cols-5 gap-2">
